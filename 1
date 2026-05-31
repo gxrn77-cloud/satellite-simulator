@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>인공위성 궤도 시뮬레이션</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0b0c10;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Malgun Gothic', sans-serif;
+        }
+        h2 { margin-top: 20px; }
+        canvas {
+            background-color: #1f2833;
+            border: 2px solid #45a29e;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(69, 162, 158, 0.5);
+            margin-top: 10px;
+        }
+        .description {
+            margin-top: 15px;
+            color: #c5c6c7;
+            text-align: center;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h2>🌎 인공위성 궤도 시뮬레이션</h2>
+    <canvas id="space" width="700" height="500"></canvas>
+    
+    <div class="description">
+        만유인력의 법칙을 코드로 구현하여 위성의 가속도와 위치를 매 프레임 계산합니다.<br>
+        (새로고침을 하면 시뮬레이션이 처음부터 다시 시작됩니다)
+    </div>
+
+    <script>
+        const canvas = document.getElementById('space');
+        const ctx = canvas.getContext('2d');
+
+        // 물리 상수 설정 (시각화를 위해 임의의 비율로 조정됨)
+        const G = 0.5; // 중력 상수
+        const M = 10000; // 중심 별(지구)의 질량
+
+        // 지구 객체
+        const earth = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 25
+        };
+
+        // 인공위성 객체 초기화
+        let satellite = {
+            x: canvas.width / 2,
+            y: canvas.height / 2 - 150, // 지구로부터 150 픽셀 떨어진 곳에서 시작
+            vx: 5.2, // X축 초기 속도 (이 값을 바꾸면 궤도 모양이 변함)
+            vy: 0    // Y축 초기 속도
+        };
+
+        // 궤적을 그리기 위한 배열
+        const trail = [];
+
+        function updatePhysics() {
+            // 1. 위성과 지구 사이의 거리 계산
+            const dx = earth.x - satellite.x;
+            const dy = earth.y - satellite.y;
+            const distSq = dx * dx + dy * dy; // 거리의 제곱 (r^2)
+            const dist = Math.sqrt(distSq);
+
+            // 2. 만유인력 법칙에 따른 힘(가속도) 계산: F = G * M / r^2
+            const force = (G * M) / distSq;
+            
+            // X, Y 방향으로 힘 분해
+            const ax = force * (dx / dist);
+            const ay = force * (dy / dist);
+
+            // 3. 속도 업데이트
+            satellite.vx += ax;
+            satellite.vy += ay;
+
+            // 4. 위치 업데이트
+            satellite.x += satellite.vx;
+            satellite.y += satellite.vy;
+
+            // 5. 궤적 저장 (너무 길어지지 않게 유지)
+            trail.push({ x: satellite.x, y: satellite.y });
+            if (trail.length > 300) {
+                trail.shift();
+            }
+        }
+
+        function draw() {
+            // 화면 지우기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 궤적 그리기
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(69, 162, 158, 0.6)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < trail.length; i++) {
+                if (i === 0) ctx.moveTo(trail[i].x, trail[i].y);
+                else ctx.lineTo(trail[i].x, trail[i].y);
+            }
+            ctx.stroke();
+
+            // 지구 그리기
+            ctx.beginPath();
+            ctx.arc(earth.x, earth.y, earth.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#4b90ff';
+            ctx.fill();
+            
+            // 인공위성 그리기
+            ctx.beginPath();
+            ctx.arc(satellite.x, satellite.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffeb3b';
+            ctx.fill();
+        }
+
+        function animate() {
+            updatePhysics();
+            draw();
+            requestAnimationFrame(animate); // 다음 프레임 호출
+        }
+
+        // 애니메이션 시작
+        animate();
+    </script>
+</body>
+</html>
